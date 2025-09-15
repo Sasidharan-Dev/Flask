@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Add User — Flask CRUD{% endblock %}
+{% block content %}
+  <h2>Add User</h2>
+  <form method="post">
+    <div class="mb-3 form-floating">
+      <input class="form-control" id="name" name="name" placeholder="Name" required>
+      <label for="name">Name</label>
+    </div>
+    <div class="mb-3 form-floating">
+      <input class="form-control" id="email" name="email" type="email" placeholder="Email" required>
+      <label for="email">Email</label>
+    </div>
+    <div class="mb-3 form-floating">
+      <input class="form-control" id="password" name="password" type="password" placeholder="Password" required>
+      <label for="password">Password</label>
+    </div>
+    <div class="mb-3 form-floating">
+      <input class="form-control" id="password2" name="password2" type="password" placeholder="Confirm Password" required>
+      <label for="password2">Confirm Password</label>
+    </div>
+    <button class="btn btn-success btn-hover">Create</button>
+  </form>
+{% endblock %}
