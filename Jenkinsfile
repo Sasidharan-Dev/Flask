@@ -32,11 +32,14 @@ pipeline {
         stage('Run Flask') {
             steps {
                 sh '''#!/bin/bash
+                cd /var/lib/jenkins/workspace/My-Job
                 pkill -f "flask run" || true
                 . venv/bin/activate
+                export FLASK_APP=app.py
                 nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
                 '''
             }
         }
+
     }
 }
