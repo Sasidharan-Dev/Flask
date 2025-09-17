@@ -23,13 +23,16 @@ pipeline {
         stage('Run Flask') {
             steps {
                 sh '''#!/bin/bash
+                # Kill any previous Flask process
                 pkill -f "flask run" || true
+
+                # Activate virtual environment
                 . venv/bin/activate
+
+                # Start Flask in background, keep running after Jenkins build finishes
                 nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
-                exit 0
                 '''
             }
         }
-
     }
 }
