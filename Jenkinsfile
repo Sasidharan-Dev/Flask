@@ -10,8 +10,8 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                 # Install venv package if not already available
-                sudo apt-get update -y
-                sudo apt-get install -y python3-venv python3-pip
+                apt-get update -y
+                apt-get install -y python3-venv python3-pip
 
                 # Create venv if missing
                 if [ ! -d "venv" ]; then
