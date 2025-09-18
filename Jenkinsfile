@@ -23,14 +23,22 @@ pipeline {
         stage('Run Flask') {
             steps {
                 sh '''#!/bin/bash
-                # Kill any previous Flask process if running
-                pkill -f "gunicorn" || true
+                set -e
 
-                # Activate virtual environment
+                # Kill previous Flask process if exists
+                if [ -f flask.pid ]; then
+                    kill -9 $(cat flask.pid) || true
+                    rm -f flask.pid
+                fi
+
+                # Activate virtualenv
                 . venv/bin/activate
 
-                # Start Flask using gunicorn in background
-                nohup gunicorn -b 0.0.0.0:5000 app:app > flask.log 2>&1 & disown
+                # Run Flask in background, detached
+                nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
+                echo $! > flask.pid
+
+                echo "Flask started with PID $(cat flask.pid)"
                 '''
             }
         }
