@@ -31,9 +31,13 @@ pipeline {
 
                     . venv/bin/activate
                     export FLASK_APP=app.py
-                    flask run --host=0.0.0.0 --port=5000
+
+                    # Run Flask in background with nohup
+                    nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
+
+                    # Save the PID
                     echo $! > flask.pid
-                '''
+                    '''
             }
         }
     }
