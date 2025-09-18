@@ -20,28 +20,23 @@ pipeline {
             }
         }
 
-        stage('Run Flask') {
+        stage('Run Flask in Background') {
             steps {
-                sh '''#!/bin/bash
-                set -e
+                sh '''
+                    # Kill old Flask if running
+                    if [ -f flask.pid ]; then
+                        kill -9 $(cat flask.pid) || true
+                        rm -f flask.pid
+                    fi
 
-                # Kill previous Flask process if exists
-                if [ -f flask.pid ]; then
-                    kill -9 $(cat flask.pid) || true
-                    rm -f flask.pid
-                fi
+                    . venv/bin/activate
 
-                # Activate virtualenv
-                . venv/bin/activate
-
-                # Run Flask in background, detached
-                nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
-                echo $! > flask.pid
-
-                echo "Flask started with PID $(cat flask.pid)"
+                    # Use nohup and disown so Jenkins doesn’t kill it
+                    nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
+                    echo $! > flask.pid
+                    disown
                 '''
             }
         }
-
     }
 }
