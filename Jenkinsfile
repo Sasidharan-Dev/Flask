@@ -24,13 +24,13 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                 # Kill any previous Flask process if running
-                pkill -f "flask run" || true
+                pkill -f "gunicorn" || true
 
                 # Activate virtual environment
                 . venv/bin/activate
 
-                # Start Flask in background, detached from Jenkins
-                nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 & disown
+                # Start Flask using gunicorn in background
+                nohup gunicorn -b 0.0.0.0:5000 app:app > flask.log 2>&1 & disown
                 '''
             }
         }
