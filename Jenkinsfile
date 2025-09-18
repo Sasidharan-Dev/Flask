@@ -34,7 +34,6 @@ pipeline {
                     # Use nohup and disown so Jenkins doesn’t kill it
                     nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
                     echo $! > flask.pid
-                    disown
                 '''
             }
         }
