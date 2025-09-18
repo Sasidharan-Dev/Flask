@@ -30,9 +30,8 @@ pipeline {
                     fi
 
                     . venv/bin/activate
-
-                    # Use nohup and disown so Jenkins doesn’t kill it
-                    nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
+                    export FLASK_APP=app.py
+                    flask run --host=0.0.0.0 --port=5000
                     echo $! > flask.pid
                 '''
             }
