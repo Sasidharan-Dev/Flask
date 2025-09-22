@@ -1,43 +1,49 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_CREDENTIALS = 'dockerhub-creds'     // Jenkins credentials ID for DockerHub username/password
+        DOCKERHUB_REPO = 'sasidharandevops/tester'         // Replace with your DockerHub repo
+        REMOTE_HOST = '13.126.16.88'            // Replace with Docker server IP
+    }
+
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/Sasidharan-Dev/Flask'
+                git branch: 'main', url: 'https://github.com/Sasidharan-Dev/Flask'
             }
         }
 
-        stage('Setup Venv') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
+                script {
+                    sh "docker build -t ${DOCKERHUB_REPO}:${env.BUILD_NUMBER} ."
+                }
             }
         }
 
-        stage('Run Flask in Background') {
+        stage('Push to DockerHub') {
             steps {
-                sh '''
-                    # Kill old Flask if running
-                    if [ -f flask.pid ]; then
-                        kill -9 $(cat flask.pid) || true
-                        rm -f flask.pid
-                    fi
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
 
-                    . venv/bin/activate
-                    export FLASK_APP=app.py
-
-                    # Run Flask in background with nohup
-                    nohup flask run --host=0.0.0.0 --port=5000 > flask.log 2>&1 &
-
-                    # Save the PID
-                    echo $! > flask.pid
-                    '''
+        stage('Deploy on Docker Server') {
+            steps {
+                sshagent (credentials: ['docker-cred']) {   // Jenkins SSH private key credentials ID
+                    sh """
+                      ssh -o StrictHostKeyChecking=no ubuntu@${REMOTE_HOST} '
+                        docker pull ${DOCKERHUB_REPO}:${BUILD_NUMBER} &&
+                        docker rm -f flask-app || true &&
+                        docker run -d --name flask-app -p 5000:5000 --restart unless-stopped ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+                      '
+                    """
+                }
             }
         }
     }
