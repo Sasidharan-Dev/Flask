@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Build Docker Image on Remote') {
             steps {
-                sshagent(['ubuntu']) {
+                sshagent(['docker-cred']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@13.126.16.88 '
                           if [ ! -d ~/app ]; then
@@ -28,7 +28,7 @@ pipeline {
 
         stage('Push Docker Image from Remote') {
             steps {
-                sshagent(['ubuntu']) {
+                sshagent(['docker-cred']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@13.126.16.88 '
                           docker login -u <dockerhub-username> -p <dockerhub-password>
@@ -41,7 +41,7 @@ pipeline {
 
         stage('Deploy Container on Remote') {
             steps {
-                sshagent(['ubuntu']) {
+                sshagent(['docker-cred']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@13.126.16.88 '
                           docker ps -q --filter "name=flask-app" | grep -q . && docker stop flask-app && docker rm flask-app || true
