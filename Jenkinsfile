@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        REMOTE_USER   = "ubuntu"                // Lightsail default username
-        REMOTE_HOST   = "3.109.185.129"    // Replace with your Docker server IP
-        SSH_CRED_ID   = "server-cred"        // Jenkins SSH credential ID (PEM key)
-        DOCKERHUB_REPO = "sasidharandevops/tester" // e.g. myuser/myflask
-        DOCKERHUB_CRED_ID = "dockerhub-cred"   // Jenkins Docker Hub credentials ID
+        REMOTE_USER   = "ubuntu"
+        REMOTE_HOST   = "3.109.185.129"
+        SSH_CRED_ID   = "server-cred"
+        DOCKERHUB_REPO = "sasidharandevops/tester"
+        DOCKERHUB_CRED_ID = "dockerhub-creds"
         APP_NAME = "flask-app"
     }
 
@@ -20,53 +20,36 @@ pipeline {
         stage('Build, Push, and Deploy on Docker Server') {
             steps {
                 sshagent (credentials: [env.SSH_CRED_ID]) {
+                    // prepare folder
                     sh """
                         ssh -o StrictHostKeyChecking=no ${env.REMOTE_USER}@${env.REMOTE_HOST} '
-                            set -e
-
-                            # Create app directory if not exists
-                            mkdir -p ~/flask_app
-
-                            # Clean old files
-                            rm -rf ~/flask_app/*
-
-                            # Exit shell
+                            mkdir -p ~/flask_app && rm -rf ~/flask_app/*
                         '
                     """
 
-                    // Copy repo files to Docker server
+                    // copy files
                     sh """
                         scp -o StrictHostKeyChecking=no -r * ${env.REMOTE_USER}@${env.REMOTE_HOST}:~/flask_app/
                     """
 
-                    // Build + Push + Deploy on remote Docker server
-                    sshagent (credentials: [env.SSH_CRED_ID]) {
-                        withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CRED_ID, usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                            sh """
-                                ssh -o StrictHostKeyChecking=no ${env.REMOTE_USER}@${env.REMOTE_HOST} '
-                                    cd ~/flask_app
+                    // build & deploy
+                    withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CRED_ID, usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${env.REMOTE_USER}@${env.REMOTE_HOST} '
+                                cd ~/flask_app
+                                TAG=\$(git rev-parse --short HEAD || date +%s)
+                                IMAGE=${DOCKERHUB_REPO}:\$TAG
 
-                                    # Get short commit hash for tag
-                                    TAG=$(git rev-parse --short HEAD || date +%s)
-                                    IMAGE=${env.DOCKERHUB_REPO}:\$TAG
+                                echo "Building image \$IMAGE"
+                                echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
 
-                                    echo "Building image \$IMAGE"
+                                docker build -t \$IMAGE .
+                                docker push \$IMAGE
 
-                                    # Docker login with Jenkins-provided creds
-                                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-
-                                    # Build and push image
-                                    docker build -t \$IMAGE .
-                                    docker push \$IMAGE
-
-                                    # Stop old container if exists
-                                    docker rm -f ${env.APP_NAME} || true
-
-                                    # Run new container
-                                    docker run -d --name ${env.APP_NAME} -p 5000:5000 --restart unless-stopped \$IMAGE
-                                '
-                            """
-                        }
+                                docker rm -f ${APP_NAME} || true
+                                docker run -d --name ${APP_NAME} -p 5000:5000 --restart unless-stopped \$IMAGE
+                            '
+                        """
                     }
                 }
             }
@@ -75,7 +58,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Flask app deployed successfully on Docker server."
+            echo "✅ Flask app deployed successfully."
         }
         failure {
             echo "❌ Build or deploy failed. Check logs."
