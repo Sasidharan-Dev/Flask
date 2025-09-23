@@ -6,7 +6,7 @@ pipeline {
         REMOTE_HOST   = "3.109.185.129"
         SSH_CRED_ID   = "server-cred"
         DOCKERHUB_REPO = "sasidharandevops/tester"
-        DOCKERHUB_CRED_ID = "dockerhub-creds"
+        DOCKERHUB_CRED_ID = "dockerhub-cred"
         APP_NAME = "flask-app"
     }
 
